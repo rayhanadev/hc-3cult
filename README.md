@@ -1,15 +1,17 @@
-# hc-3cult
+# Cult of 3s Slack Bot
 
-To install dependencies:
+This Slack bot manages an exclusive secret society on the HackClub Slack!
 
-```bash
-bun install
+## Installation
+
+```sh
+git clone https://github.com/rayhanadev/hc-3cult
+cd hc-3cult
+pnpm install
 ```
 
-To run:
+## Usage
 
-```bash
-bun run src/index.ts
+```sh
+pnpm start
 ```
-
-This project was created using `bun init` in bun v1.1.8. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
