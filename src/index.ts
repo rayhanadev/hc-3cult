@@ -51,7 +51,7 @@ app.action("join-cult-of-threes", async ({ ack, body, client }) => {
   }
 });
 
-app.event("user_change", async ({ event }) => {
+app.event("user_profile_change", async ({ event }) => {
   const username = event.user.profile?.display_name!;
 
   if (username.length <= 3) {
