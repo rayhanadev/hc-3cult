@@ -51,10 +51,16 @@ app.action("join-cult-of-threes", async ({ ack, body, client }) => {
   }
 });
 
-app.event("user_change", async ({ event }) => {
+app.event("user_profile_change", async ({ event }) => {
   const username = event.user.profile?.display_name!;
 
-  if (username.length <= 3) {
+  const members = membersCache.get<string[]>("members");
+
+  if (!members) {
+    throw new Error("Members cache is empty.");
+  }
+
+  if (username.length <= 3 && !members.includes(event.user.id)) {
     try {
       await app.client.chat.postMessage({
         token: process.env.SLACK_BOT_TOKEN,
@@ -90,12 +96,6 @@ app.event("user_change", async ({ event }) => {
   }
 
   if (username.length > 3) {
-    const members = membersCache.get<string[]>("members");
-
-    if (!members) {
-      throw new Error("Members cache is empty.");
-    }
-
     if (members.includes(event.user.id)) {
       try {
         const result = await app.client.conversations.kick({
