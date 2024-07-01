@@ -14,6 +14,10 @@ if (!process.env.SLACK_SIGNING_SECRET) {
   throw new Error("SLACK_SIGNING_SECRET is not set.");
 }
 
+if (!process.env.BOT_USER_ID) {
+  throw new Error("BOT_USER_ID is not set.");
+}
+
 const app = new slack.App({
   signingSecret: process.env.SLACK_SIGNING_SECRET!,
   token: process.env.SLACK_BOT_TOKEN!,
@@ -24,6 +28,43 @@ const membersCache = new NodeCache({ stdTTL: 3600, deleteOnExpire: true });
 membersCache.on("expired", async (key) => {
   if (key === "members") refreshMembersCache();
 });
+
+interface Message {
+  ts: string;
+  user: string;
+}
+
+async function deleteBotMessagesToUser(userId: string): Promise<void> {
+  try {
+    const dmChannelsResult = await app.client.conversations.list({
+      types: 'im'
+    });
+
+    const dmChannel = dmChannelsResult.channels?.find(channel => channel.user === userId);
+    if (!dmChannel) {
+      console.error(`No direct message channel found with user: ${userId}`);
+      return;
+    }
+
+    const dmChannelId = dmChannel.id!;
+
+    const result = await app.client.conversations.history({
+      channel: dmChannelId,
+    });
+
+    const messages = result.messages as Message[];
+    const botMessages = messages.filter(message => message.user === process.env.BOT_USER_ID);
+
+    for (const message of botMessages) {
+      await app.client.chat.delete({
+        channel: dmChannelId,
+        ts: message.ts
+      });
+    }
+  } catch (error) {
+    console.error(`Error deleting messages: ${error}`);
+  }
+}
 
 app.action("join-cult-of-threes", async ({ ack, body, client }) => {
   await ack();
@@ -44,6 +85,8 @@ app.action("join-cult-of-threes", async ({ ack, body, client }) => {
       channel: process.env.SLACK_SECRET_CHANNEL!,
       text: `<@${body.user.id}> has accepted our invitation and joined the Cult of 3 Letters. 🙇`,
     });
+
+		await deleteBotMessagesToUser(body.user.id);
 
     await refreshMembersCache();
   } catch (error) {
@@ -84,6 +127,7 @@ app.event("user_change", async ({ event }) => {
           },
         ],
       });
+			console.log(`Sent an invitation to user ${username}. Their username's lenght is ${username.length}.`)
     } catch (error) {
       console.error(error);
     }
@@ -114,6 +158,8 @@ app.event("user_change", async ({ event }) => {
           text: `<@${event.user.id}> had a username longer than three letters. In violation of our sacred rules, they have been kicked.`,
         });
 
+				await deleteBotMessagesToUser(event.user.id);
+
         await refreshMembersCache();
       } catch (error) {
         console.error(error);
@@ -140,3 +186,5 @@ async function refreshMembersCache() {
 refreshMembersCache();
 await app.start(3000);
 console.log("⚡️ Bolt app is running!");
+
+// vim: ts=2 sts=2 sw=2 noet
