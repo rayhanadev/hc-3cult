@@ -86,7 +86,7 @@ app.action("join-cult-of-threes", async ({ ack, body, client }) => {
       text: `<@${body.user.id}> has accepted our invitation and joined the Cult of 3 Letters. 🙇`,
     });
 
-		await deleteBotMessagesToUser(body.user.id);
+    await deleteBotMessagesToUser(body.user.id);
 
     await refreshMembersCache();
   } catch (error) {
@@ -127,7 +127,7 @@ app.event("user_change", async ({ event }) => {
           },
         ],
       });
-			console.log(`Sent an invitation to user ${username}. Their username's lenght is ${username.length}.`)
+      console.log(`Sent an invitation to user ${username}. Their username's lenght is ${username.length}.`)
     } catch (error) {
       console.error(error);
     }
@@ -158,7 +158,7 @@ app.event("user_change", async ({ event }) => {
           text: `<@${event.user.id}> had a username longer than three letters. In violation of our sacred rules, they have been kicked.`,
         });
 
-				await deleteBotMessagesToUser(event.user.id);
+        await deleteBotMessagesToUser(event.user.id);
 
         await refreshMembersCache();
       } catch (error) {
@@ -187,4 +187,4 @@ refreshMembersCache();
 await app.start(3000);
 console.log("⚡️ Bolt app is running!");
 
-// vim: ts=2 sts=2 sw=2 noet
+// vim: ts=2 sts=2 sw=2 et
