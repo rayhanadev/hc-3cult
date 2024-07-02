@@ -1,6 +1,7 @@
 import slack from "@slack/bolt";
 import "dotenv/config";
 import NodeCache from "node-cache";
+import { isUndefined } from "util";
 
 if (!process.env.SLACK_SECRET_CHANNEL) {
   throw new Error("SLACK_SECRET_CHANNEL is not set.");
@@ -33,6 +34,7 @@ interface Message {
   ts: string;
   user: string;
 }
+
 
 async function deleteBotMessagesToUser(userId: string): Promise<void> {
   try {
@@ -91,6 +93,48 @@ app.action("join-cult-of-threes", async ({ ack, body, client }) => {
     await refreshMembersCache();
   } catch (error) {
     console.error(error);
+  }
+});
+
+app.message('.check_members', async () => {
+  try {
+    const members = membersCache.get<string[]>("members");
+
+    if (!members) {
+      throw new Error("Members cache is empty.");
+    }
+
+    for (const member of members) {
+      const result = await app.client.users.info({
+        user: member,
+      });
+
+      const memberDisplayName = result.user?.profile?.display_name!
+      
+      if (memberDisplayName.length > 3) {
+        const result2 = await app.client.conversations.kick({
+          token: process.env.SLACK_BOT_TOKEN!,
+          channel: process.env.SLACK_SECRET_CHANNEL!,
+          user: member,
+        });
+
+        if (!result2.ok) {
+          throw new Error("Failed to kick user from the channel.");
+        }
+
+        await app.client.chat.postMessage({
+          token: process.env.SLACK_BOT_TOKEN!,
+          channel: process.env.SLACK_SECRET_CHANNEL!,
+          text: `<@${member}> had a username longer than three letters. In violation of our sacred rules, they have been kicked.`,
+        });
+
+        await deleteBotMessagesToUser(member);
+
+        await refreshMembersCache();
+      }
+    }
+  } catch (error) {
+    console.error(`Error checking members: ${error}`);
   }
 });
 
